@@ -1,16 +1,27 @@
 import os
+from typing import TYPE_CHECKING
 
 import sublime
 import sublime_plugin
 
-from .go_grip import (SETTINGS, GripBinaryError, GripMissingError, Server,
-                      ServerError, ensure_server, kill_all, open_in_browser,
-                      root_for_file, running, server_for_file, stop, stop_all)
+if TYPE_CHECKING:
+    from sublime_types import CommandArgs
+
+from .go_grip import (GRIP_VERSION, SETTINGS, DownloadError, GripBinaryError,
+                      GripMissingError, Server, ServerError, download,
+                      ensure_server, kill_all, open_in_browser, root_for_file,
+                      running, server_for_file, stop, stop_all)
 
 # ~ Constants
 # -----------
 
 NAME = 'GripPreview'
+
+# The settings, default and user side by side.
+EDIT_SETTINGS_ARGS: CommandArgs = {
+    'base_file': f'${{packages}}/{NAME}/{SETTINGS}',
+    'default': '{\n\t$0\n}\n',
+}
 
 
 # ~ Lifecycle
@@ -40,17 +51,59 @@ def _error(message: str) -> None:
     sublime.error_message(f'{NAME}\n\n{message}')
 
 
-def _missing() -> None:
-    _error(
+# ~ Download
+# ----------
+
+def _download_progress(done: int, total: int) -> None:
+    if total:
+        _status(f'downloading go-grip {GRIP_VERSION}... '
+                f'{done * 100 // total}%')
+    else:
+        _status(f'downloading go-grip {GRIP_VERSION}... {done // 1024} KiB')
+
+
+def _offer_download(window: sublime.Window) -> bool:
+    """Ask to download go-grip, and download it on a yes.
+
+    Runs on the async thread, the download blocks it.
+
+    Returns:
+        True when go-grip was downloaded.
+    """
+    choice = sublime.yes_no_cancel_dialog(
         'go-grip was not found.\n\n'
-        'Install it from https://github.com/chrishrb/go-grip and put it in '
-        'PATH, or set "go_grip_binary" in the package settings.')
+        f'Download go-grip {GRIP_VERSION} from its GitHub releases '
+        '(github.com/chrishrb/go-grip) into Sublime Text\'s Package '
+        'Storage?\n\n'
+        'Or point "go_grip_binary" in the settings to a go-grip you have.',
+        yes_title='Download', no_title='Open Settings', title=NAME)
+    if choice == sublime.DialogResult.NO:
+        sublime.set_timeout(
+            lambda: window.run_command('edit_settings', EDIT_SETTINGS_ARGS))
+        return False
+    if choice != sublime.DialogResult.YES:
+        return False
+
+    _download_progress(0, 0)
+    try:
+        path = download(_download_progress)
+    except DownloadError as e:
+        _error(f'go-grip could not be downloaded.\n\n{e}')
+        return False
+    _status(f'go-grip {GRIP_VERSION} downloaded to {path}')
+    return True
 
 
-def _start(start) -> Server | None:
+# ~ Start
+# -------
+
+def _start(window: sublime.Window, start) -> Server | None:
     """Run a server start, reporting a failure.
 
+    A missing go-grip offers a download, then the start runs again.
+
     Args:
+        window: the window to open the settings in, when asked.
         start: a callable returning a Server, e.g. a lambda calling
                ensure_server().
 
@@ -60,8 +113,16 @@ def _start(start) -> Server | None:
     try:
         return start()
     except GripMissingError:
-        _missing()
+        if not _offer_download(window):
+            return None
     except (GripBinaryError, ServerError) as e:
+        _error(str(e))
+        return None
+
+    # go-grip is in Package Storage now.
+    try:
+        return start()
+    except (GripMissingError, GripBinaryError, ServerError) as e:
         _error(str(e))
     return None
 
@@ -120,12 +181,13 @@ class GripPreviewCommand(sublime_plugin.TextCommand):
         dirty = self.view.is_dirty()
         folders = window.folders()
         sublime.set_timeout_async(
-            lambda: self._preview(file, folders, dirty))
+            lambda: self._preview(window, file, folders, dirty))
 
-    def _preview(self, file: str, folders: list[str], dirty: bool) -> None:
+    def _preview(self, window: sublime.Window, file: str,
+                 folders: list[str], dirty: bool) -> None:
         root = root_for_file(file, folders)
         _status('starting go-grip...')
-        server = _start(lambda: server_for_file(file, root))
+        server = _start(window, lambda: server_for_file(file, root))
         if server is None:
             return
         url = open_in_browser(server, file)
@@ -162,7 +224,7 @@ class GripPreviewServeFolderCommand(sublime_plugin.WindowCommand):
 
     def _serve_async(self, root: str) -> None:
         _status('starting go-grip...')
-        server = _start(lambda: ensure_server(root))
+        server = _start(self.window, lambda: ensure_server(root))
         if server is None:
             return
         _status(open_in_browser(server, _readme(root)))
