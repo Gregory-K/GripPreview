@@ -1,0 +1,26 @@
+[
+  {
+    "caption": "GripPreview: Preview File",
+    "command": "grip_preview"
+  },
+  {
+    "caption": "GripPreview: Serve Project Folder",
+    "command": "grip_preview_serve_folder"
+  },
+  {
+    "caption": "GripPreview: Stop Server",
+    "command": "grip_preview_stop"
+  },
+  {
+    "caption": "GripPreview: Stop Server (Force All)",
+    "command": "grip_preview_stop_force_all"
+  },
+  {
+    "caption": "Preferences: GripPreview: Settings",
+    "command": "edit_settings",
+    "args": {
+      "base_file": "${packages}/GripPreview/GripPreview.sublime-settings",
+      "default": "{\n\t$0\n}\n"
+    }
+  }
+]

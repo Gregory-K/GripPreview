@@ -1,0 +1,17 @@
+{
+  // go-grip binary to run, empty to look it up
+  // - a path, '~' and environment variables work, e.g. "~/go/bin/go-grip"
+  // - or a bare name looked up in PATH, e.g. "go-grip-dev"
+  // * empty: PATH, then the copy downloaded to Package Storage
+  "go_grip_binary": "",
+  // Files that Preview File is available for, either one matches
+  // - a scope selector, e.g. "text.html.markdown, text.plain"
+  // - extensions, with or without the dot, e.g. [".txt", "rst"]
+  // * go-grip renders .md files only, the browser shows others as it would
+  "preview_selector": "text.html.markdown",
+  "preview_extensions": [],
+  // Port of the go-grip server
+  // - 0: a free port for each served folder
+  // - any other: that port, so only one folder can be served at a time
+  "port": 0
+}
