@@ -1,0 +1,16 @@
+[environment]
+python-version = "3.14"
+# Sublime Text's API modules (sublime, sublime_plugin),
+# from the portable install/dev-env this package lives in.
+# For a normal install, use its Lib folder:
+#   Windows: C:/Program Files/Sublime Text/Lib/python314
+#   macOS:   /Applications/Sublime Text.app/Contents/MacOS/Lib/python314
+#   Linux:   /opt/sublime_text/Lib/python314
+extra-paths = ["../../../Lib/python314"]
+# ST imports the package by its folder name, from Packages.
+root = [".."]
+
+[rules]
+# sublime_plugin types run() as run(self, **kwargs), which every command
+# with fixed arguments breaks.
+invalid-method-override = "ignore"
