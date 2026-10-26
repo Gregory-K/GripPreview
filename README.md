@@ -45,6 +45,12 @@ To install go-grip yourself instead,
 - download it from the go-grip releases and put it in `PATH`, or
 - run `go install github.com/chrishrb/go-grip@latest`
 
+### Caveats
+
+go-grip listens on all network interfaces, not only on `localhost`, even though the preview opens at a `localhost` address. Anyone on your network who can reach your computer on a served port can read every file under the served folder, not only its Markdown files. Windows Firewall may ask about this the first time go-grip runs. Deny access there to keep the servers local.
+
+On Windows, a server locks the `README.md` at the top of its folder until it stops. The file can still be edited, but not renamed, moved or deleted. Git checkouts, rebases and resets that replace it fail with `unable to unlink old 'README.md'`. Stop the server first ([## Stop servers](#stop-servers)).
+
 
 ## Preview a file
 
@@ -110,11 +116,6 @@ e.g. `alt+m` then `p` to preview:
   }
 ]
 ```
-
-
-## Network access
-
-go-grip listens on all network interfaces, not only on `localhost`, even though the preview opens at a `localhost` address. Anyone on your network who can reach your computer on a served port can read every file under the served folder, not only its Markdown files. Windows Firewall may ask about this the first time go-grip runs. Deny access there to keep the servers local.
 
 
 ## License
