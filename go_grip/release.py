@@ -138,6 +138,15 @@ def _write(path: str, data: bytes, executable: bool = False) -> None:
     os.replace(part, path)
 
 
+def _discard(path: str) -> None:
+    # Removes a rejected binary, and its folder when nothing else is in it.
+    os.remove(path)
+    try:
+        os.rmdir(os.path.dirname(path))
+    except OSError:
+        pass
+
+
 # ~ Download
 # ----------
 
@@ -158,8 +167,9 @@ def download(progress: Callable[[int, int], None] | None = None,
         Path of the downloaded binary.
 
     Raises:
-        DownloadError: no release for this system, a network error, a
-                       checksum mismatch, or a binary that does not run.
+        DownloadError: no release for this system, a network error,
+                       a checksum mismatch, a binary that does not run,
+                       or one that reports another version.
     """
     with _lock:
         target = stored_binary(version)
@@ -180,13 +190,23 @@ def download(progress: Callable[[int, int], None] | None = None,
 
         files = _extract(archive, name)
         os.makedirs(storage_dir(version), exist_ok=True)
+        _write(target, files[BINARY_NAME], executable=True)
+
+        got = binary_version(target)
+        if got is None:
+            _discard(target)
+            raise DownloadError(
+                f'the downloaded {BINARY_NAME} does not run on this system')
+        # The checksum comes from the same release, so only the binary
+        # itself can tell that the release is the one asked for.
+        if got.lstrip('v') != version.lstrip('v'):
+            _discard(target)
+            raise DownloadError(
+                f'the downloaded {BINARY_NAME} reports {got}, '
+                f'expected {version}')
+
+        # Only next to a binary that is kept.
         if LICENSE in files:
             _write(os.path.join(storage_dir(version), LICENSE),
                    files[LICENSE])
-        _write(target, files[BINARY_NAME], executable=True)
-
-        if binary_version(target) is None:
-            os.remove(target)
-            raise DownloadError(
-                f'the downloaded {BINARY_NAME} does not run on this system')
         return target
