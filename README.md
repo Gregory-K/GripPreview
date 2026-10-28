@@ -65,7 +65,7 @@ Each served folder gets its own go-grip server. Previewing another file under a 
 
 ## Serve a project folder
 
-`GripPreview: Serve Project Folder` serves a folder of the window's project and opens its `README.md`, or a list of its files when there is none. With several project folders, a list asks which one. Every `.md` file under the folder then opens rendered.
+`GripPreview: Serve Project Folder` serves the project's root folder and opens its file listing. With several project folders, a prompt offers a list to choose from. Every `.md` file under the folder then opens rendered.
 
 
 ## Stop servers

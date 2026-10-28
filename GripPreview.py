@@ -157,12 +157,6 @@ def _previewable(view: sublime.View) -> bool:
     return False
 
 
-def _readme(root: str) -> str | None:
-    # What go-grip opens when started on a folder itself.
-    readme = os.path.join(root, 'README.md')
-    return readme if os.path.isfile(readme) else None
-
-
 # ~ Preview File
 # --------------
 
@@ -227,7 +221,7 @@ class GripPreviewServeFolderCommand(sublime_plugin.WindowCommand):
         server = _start(self.window, lambda: ensure_server(root))
         if server is None:
             return
-        _status(open_in_browser(server, _readme(root)))
+        _status(open_in_browser(server))
 
 
 # ~ Stop Server
